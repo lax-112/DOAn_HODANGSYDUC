@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Libraries\Notification;
+use App\Models\GalleryRoom;
+use Illuminate\Http\Request;
+use Exception;
+
+class GalleryRoomController extends Controller
+{
+    
+    protected $gallery;
+    protected $notification;
+
+    public function __construct(GalleryRoom $gallery, Notification $notification)
+    {
+        $this->gallery = $gallery;
+        $this->notification = $notification;
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @param $roomId
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index($roomId)
+    {
+        $galleries = $this->gallery->getImages($roomId);
+        return view('admin.galleries_room.index', compact('galleries', 'roomId'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param $roomId
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function store(Request $request, $roomId)
+    {
+        $request->validate($this->gallery->rules());
+        try {
+            $this->gallery->storeGallery($request, $roomId);
+            $this->notification->setMessage('Đã thêm ảnh mới thành công', Notification::SUCCESS);
+
+            return redirect()->route('galleries_room.index', $roomId)->with($this->notification->getMessage());
+        } catch (Exception $e) {
+            $this->notification->setMessage('Image addition failed', Notification::ERROR);
+
+            return back()
+                ->with('exception', $e->getMessage())
+                ->with($this->notification->getMessage());
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param int $id
+     * @return string
+     */
+    public function destroy($room_id, $id)
+    {
+        return json_encode($this->gallery->remove($id));
+    }
+}
